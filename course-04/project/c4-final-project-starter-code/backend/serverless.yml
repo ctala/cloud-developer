@@ -4,13 +4,32 @@ service:
 plugins:
   - serverless-webpack
   - serverless-iam-roles-per-function
+  - serverless-dynamodb-local
+  - serverless-offline
 
 provider:
   name: aws
-  runtime: nodejs8.10
+  runtime: nodejs12.x
 
   stage: ${opt:stage, 'dev'}
-  region: ${opt:region, 'us-east-1'}
+  region: ${opt:region, 'us-west-2'}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:GetItem
+        # - dynamodb: DeleteItem
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
+    - Effect: Allow
+      Action:
+       - dynamodb:Query
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
+  environment:
+    TODOS_TABLE: ${self:custom.dynamoTableTodos}
+
+
+package:
+ individually: true
 
 functions:
 
@@ -24,9 +43,9 @@ functions:
       - http:
           method: get
           path: todos
+          cors: true
 
   # TODO: Configure this function
-  GetTodos:
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
@@ -59,5 +78,25 @@ functions:
           path: todos/{todoId}/attachment
 
 resources:
-  Resources:
     # TODO: Add any necessary AWS resources
+  - ${file(resources/dynamodb-todos.yml)}
+
+custom:
+
+# Databases
+
+## Dynamodb
+
+### Default
+  dynamoDBDeletePolicies:
+    prod: Retain
+    dev: Delete
+    local: Delete
+    other: Delete
+  dynamodb:
+    start:
+      migrate: true
+    stages:
+      - dev
+### Names
+  dynamoTableTodos : Todos-${self:provider.stage}

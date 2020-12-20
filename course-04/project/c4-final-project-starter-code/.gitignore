@@ -1,1 +1,4 @@
 **/.DS_Store
+backend/.dynamodb
+backend/.idea/*
+backend/.serverless/*
