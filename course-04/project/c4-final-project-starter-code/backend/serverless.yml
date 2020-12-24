@@ -18,24 +18,41 @@ provider:
       Action:
         - dynamodb:PutItem
         - dynamodb:GetItem
-        # - dynamodb: DeleteItem
+        - dynamodb:DeleteItem
       Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
     - Effect: Allow
       Action:
        - dynamodb:Query
       Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
+
+    - Effect: Allow
+      Action:
+       - dynamodb:Query
+      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
+
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: arn:aws:secretsmanager:us-west-2:938515849324:secret:dev/cert/auth0-MvMzd2
+
+    - Effect: Allow
+      Action:
+        - S3:GetObject
+        - S3:PutObject
+      Resource: arn:aws:s3:::${self:custom.bucketName}
+
   environment:
     TODOS_TABLE: ${self:custom.dynamoTableTodos}
+    BUCKET_NAME: ${self:custom.bucketName}
 
 
-package:
- individually: true
+# package:
+#  individually: true
 
 functions:
   Auth:
     handler: src/lambda/auth/rs256Auth0Authorizer.handler
 
-  # TODO: Configure this function
   GetTodos:
     handler: src/lambda/http/getTodos.handler
     events:
@@ -45,7 +62,7 @@ functions:
           path: todos
           cors: true
 
-  # TODO: Configure this function
+
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
     events:
@@ -53,8 +70,9 @@ functions:
           method: post
           path: todos
           authorizer: Auth
+          cors: true
 
-  # TODO: Configure this function
+
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
     events:
@@ -62,8 +80,9 @@ functions:
           method: patch
           path: todos/{todoId}
           authorizer: Auth
+          cors: true
 
-  # TODO: Configure this function
+
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
     events:
@@ -71,6 +90,7 @@ functions:
           method: delete
           path: todos/{todoId}
           authorizer: Auth
+          cors: true
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -80,6 +100,7 @@ functions:
           method: post
           path: todos/{todoId}/attachment
           authorizer: Auth
+          cors: true
 
 resources:
     # TODO: Add any necessary AWS resources
@@ -102,3 +123,7 @@ custom:
       - dev
 ### Names
   dynamoTableTodos : Todos-${self:provider.stage}
+
+
+  #S3
+  bucketName: ctala-udagram

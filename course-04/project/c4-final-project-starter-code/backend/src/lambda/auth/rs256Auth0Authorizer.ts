@@ -64,6 +64,9 @@ function verifyToken(authHeader: string, certificate:string): JwtToken {
 }
 
 
+  /**
+    The certificate is base64 encoded in Secret Manager
+   */
  handler.use(secretsManager({
   cache: true,
   secrets: {
