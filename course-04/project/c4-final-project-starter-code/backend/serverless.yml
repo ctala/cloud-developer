@@ -32,9 +32,8 @@ package:
  individually: true
 
 functions:
-
   Auth:
-    handler: src/lambda/auth/auth0Authorizer.handler
+    handler: src/lambda/auth/rs256Auth0Authorizer.handler
 
   # TODO: Configure this function
   GetTodos:
@@ -42,6 +41,7 @@ functions:
     events:
       - http:
           method: get
+          authorizer: Auth
           path: todos
           cors: true
 
@@ -52,6 +52,7 @@ functions:
       - http:
           method: post
           path: todos
+          authorizer: Auth
 
   # TODO: Configure this function
   UpdateTodo:
@@ -60,6 +61,7 @@ functions:
       - http:
           method: patch
           path: todos/{todoId}
+          authorizer: Auth
 
   # TODO: Configure this function
   DeleteTodo:
@@ -68,6 +70,7 @@ functions:
       - http:
           method: delete
           path: todos/{todoId}
+          authorizer: Auth
 
   # TODO: Configure this function
   GenerateUploadUrl:
@@ -76,6 +79,7 @@ functions:
       - http:
           method: post
           path: todos/{todoId}/attachment
+          authorizer: Auth
 
 resources:
     # TODO: Add any necessary AWS resources
@@ -84,9 +88,7 @@ resources:
 custom:
 
 # Databases
-
 ## Dynamodb
-
 ### Default
   dynamoDBDeletePolicies:
     prod: Retain

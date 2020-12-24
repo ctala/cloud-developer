@@ -6,6 +6,10 @@ import { getUser } from '../../utils/user'
 import { APIGatewayProxyEvent, APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda'
 import { CreateTodoRequest } from '../../requests/CreateTodoRequest'
 
+//Logger
+import { createLogger } from '../../utils/logger'
+const logger = createLogger('createTodo')
+
 //Variables
 const docClient = getDocClient()
 const todosTable = process.env.TODOS_TABLE
@@ -34,21 +38,31 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
     ...newTodo
   }
 
-  console.log(newItem)
+  logger.info('New Item 2 Add', { item: newItem, table: todosTable });
 
-  await docClient.put({
-    TableName: todosTable,
-    Item: newItem
-  }).promise()
+  // console.log(newItem)
+
+  let statusCode = 200;
+  let returnBody = {};
+
+  try {
+    await docClient.put({
+      TableName: todosTable,
+      Item: newItem
+    }).promise()
+    returnBody = { item: newItem };
+
+  }catch (e) {
+      statusCode = 500;
+  }
+
 
   return {
-    statusCode: 201,
+    statusCode: statusCode,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': true
     },
-    body: JSON.stringify({
-      newItem
-    })
+    body: JSON.stringify(returnBody)
   }
 }
