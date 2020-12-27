@@ -10,15 +10,20 @@ plugins:
 provider:
   name: aws
   runtime: nodejs12.x
-
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-west-2'}
+  #Tracing allows us more detailed information through XRay
+  tracing:
+    lambda: true
+    apiGateway: true
+
   iamRoleStatements:
     - Effect: Allow
       Action:
         - dynamodb:PutItem
         - dynamodb:GetItem
         - dynamodb:DeleteItem
+        - dynamodb:UpdateItem
       Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
     - Effect: Allow
       Action:
@@ -39,7 +44,7 @@ provider:
       Action:
         - S3:GetObject
         - S3:PutObject
-      Resource: arn:aws:s3:::${self:custom.bucketName}
+      Resource: arn:aws:s3:::${self:custom.bucketName}/*
 
   environment:
     TODOS_TABLE: ${self:custom.dynamoTableTodos}
@@ -105,6 +110,7 @@ functions:
 resources:
     # TODO: Add any necessary AWS resources
   - ${file(resources/dynamodb-todos.yml)}
+  - ${file(resources/s3-bucket.yml)}
 
 custom:
 
@@ -126,4 +132,4 @@ custom:
 
 
   #S3
-  bucketName: ctala-udagram
+  bucketName: ctala-udagram-${self:provider.stage}

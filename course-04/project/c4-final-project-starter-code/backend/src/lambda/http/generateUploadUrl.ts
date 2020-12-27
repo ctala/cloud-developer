@@ -1,27 +1,56 @@
 import 'source-map-support/register'
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda'
-
+import { TodoDataLayer } from '../../dataLayer/TodoDataLayer'
+import { getUser } from '../../utils/user'
 
 const AWS = require('aws-sdk')
-const s3 = new AWS.S3()
 
-
+const bucketName = process.env.BUCKET_NAME
+const urlExpiration = 3600
+const s3 = new AWS.S3({
+  signatureVersion: 'v4'
+})
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const todoId = event.pathParameters.todoId
-  console.log(todoId);
+  const authorization: string = event.headers.Authorization
+  const userId: string = getUser(authorization)
 
-  // TODO: Return a presigned URL to upload a file for a TODO item with the provided id
+  console.log(todoId)
+  const key = `${todoId}.png`;
 
-  const params = {Bucket: process.env.BUCKET_NAME, Key: todoId, Expires: 360};
-const url = s3.getSignedUrl('putObject', params);
-console.log('The URL is', url); // expires in 60 seconds
+
+  let statusCode = 200;
+  let result = null;
+
+  try {
+    //We add the key to the attachmentUrl
+    const todoDataLayer = new TodoDataLayer(userId);
+    await todoDataLayer.addAttachmentUrl(todoId);
+
+    const params = {
+      Bucket: bucketName,
+      Key: key,
+      Expires: urlExpiration
+    }
+
+    //Put URL
+    const url = s3.getSignedUrl('putObject', params);
+    result = url;
+    console.log('The URL is', url, params);
+  }
+  catch (e)
+  {
+    console.log(e);
+    statusCode = 403;
+  }
+
+
   return {
-    statusCode: 200,
+    statusCode: statusCode,
     headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true
+      'Access-Control-Allow-Origin': '*'
     },
-    body: JSON.stringify({uploadUrl:url})
+    body: JSON.stringify({ uploadUrl: result })
   }
 }
