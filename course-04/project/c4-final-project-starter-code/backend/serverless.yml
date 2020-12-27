@@ -3,7 +3,7 @@ service:
 
 plugins:
   - serverless-webpack
-#  - serverless-iam-roles-per-function
+  - serverless-iam-roles-per-function
   - serverless-dynamodb-local
   - serverless-offline
 
@@ -12,54 +12,37 @@ provider:
   runtime: nodejs12.x
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'us-west-2'}
+
   #Tracing allows us more detailed information through XRay
   tracing:
     lambda: true
     apiGateway: true
 
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - dynamodb:PutItem
-        - dynamodb:GetItem
-        - dynamodb:DeleteItem
-        - dynamodb:UpdateItem
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
-    - Effect: Allow
-      Action:
-       - dynamodb:Query
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
-
-    - Effect: Allow
-      Action:
-       - dynamodb:Query
-      Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
-
-    - Effect: Allow
-      Action:
-        - secretsmanager:GetSecretValue
-      Resource: arn:aws:secretsmanager:us-west-2:938515849324:secret:dev/cert/auth0-MvMzd2
-
-    - Effect: Allow
-      Action:
-        - S3:GetObject
-        - S3:PutObject
-      Resource: arn:aws:s3:::${self:custom.bucketName}/*
-
+  # Environmental variables to be used on the functions.
   environment:
     TODOS_TABLE: ${self:custom.dynamoTableTodos}
     BUCKET_NAME: ${self:custom.bucketName}
 
 
-# package:
-#  individually: true
+package:
+  individually: true #That way we don't overload the smaller functions.
 
 functions:
   Auth:
     handler: src/lambda/auth/rs256Auth0Authorizer.handler
+    iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: arn:aws:secretsmanager:us-west-2:938515849324:secret:dev/cert/auth0-MvMzd2
 
   GetTodos:
     handler: src/lambda/http/getTodos.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}/index/userId-timestamp-index
     events:
       - http:
           method: get
@@ -70,6 +53,11 @@ functions:
 
   CreateTodo:
     handler: src/lambda/http/createTodo.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:PutItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
     events:
       - http:
           method: post
@@ -83,6 +71,11 @@ functions:
 
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
     events:
       - http:
           method: patch
@@ -96,6 +89,11 @@ functions:
 
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DeleteItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
     events:
       - http:
           method: delete
@@ -106,6 +104,17 @@ functions:
 
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:UpdateItem
+        Resource: arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.dynamoTableTodos}
+
+      - Effect: Allow
+        Action:
+          - S3:PutObject
+          - S3:GetObject
+        Resource: arn:aws:s3:::${self:custom.bucketName}/*
     events:
       - http:
           method: post
