@@ -1,13 +1,6 @@
-import 'source-map-support/register'
-import { getDocClient } from '../../utils/dynamodb'
 import { getUser } from '../../utils/user'
-
 import { APIGatewayProxyEvent, APIGatewayProxyResult, APIGatewayProxyHandler } from 'aws-lambda'
-
-
-//Variables
-const docClient = getDocClient()
-const todosTable = process.env.TODOS_TABLE
+import { TodoBL } from '../../businessLogic/TodoBL'
 
 export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
 
@@ -15,25 +8,21 @@ export const handler: APIGatewayProxyHandler = async (event: APIGatewayProxyEven
   const authorization: string = event.headers.Authorization;
   const userId: string = getUser(authorization);
 
+  const todosBL = new TodoBL(userId);
 
-1
-  const result = await docClient.query({
-    TableName: todosTable,
-    IndexName : "userId-timestamp-index",
-    KeyConditionExpression: "#userId = :userId",
-    ExpressionAttributeNames:{
-      "#userId": "userId"
-    },
-    ExpressionAttributeValues: {
-      ":userId": userId
-    },
-    ScanIndexForward : false
-  }).promise()
+  let items = [];
+  let statusCode = 200;
+  try {
+    items = await todosBL.getTodos();
+  }
+  catch (e) {
+    statusCode = 500;
+  }
 
-  const items = result.Items
+
 
   return {
-    statusCode: 200,
+    statusCode: statusCode,
     headers: {
       'Access-Control-Allow-Origin': '*'
     },

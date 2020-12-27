@@ -3,7 +3,7 @@ service:
 
 plugins:
   - serverless-webpack
-  - serverless-iam-roles-per-function
+#  - serverless-iam-roles-per-function
   - serverless-dynamodb-local
   - serverless-offline
 
@@ -76,7 +76,10 @@ functions:
           path: todos
           authorizer: Auth
           cors: true
-
+          request:
+            passThrough: NEVER #If it is not JSON, we don't accept it.
+            schema:
+              application/json: ${file(schemas/create.json)} #Validará en BODY en caso de no corresponder dará error 422 con mensaje
 
   UpdateTodo:
     handler: src/lambda/http/updateTodo.handler
@@ -86,7 +89,10 @@ functions:
           path: todos/{todoId}
           authorizer: Auth
           cors: true
-
+          request:
+            passThrough: NEVER #If it is not JSON, we don't accept it.
+            schema:
+              application/json: ${file(schemas/update.json)} #Validará en BODY en caso de no corresponder dará error 422 con mensaje
 
   DeleteTodo:
     handler: src/lambda/http/deleteTodo.handler
@@ -97,7 +103,7 @@ functions:
           authorizer: Auth
           cors: true
 
-  # TODO: Configure this function
+
   GenerateUploadUrl:
     handler: src/lambda/http/generateUploadUrl.handler
     events:
@@ -108,9 +114,9 @@ functions:
           cors: true
 
 resources:
-    # TODO: Add any necessary AWS resources
   - ${file(resources/dynamodb-todos.yml)}
   - ${file(resources/s3-bucket.yml)}
+  - ${file(resources/request-validator.yml)}
 
 custom:
 
